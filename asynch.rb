@@ -18,7 +18,7 @@ class Asynch
       while @run
         to_run = @queue.shift
         if to_run
-          puts "running method #{to_run[:method]}"
+          # puts "running method #{to_run[:method]}"
           to_run_object= to_run[:object] || Object
           to_run_object.send(to_run[:method], *to_run[:args])
         end
@@ -30,7 +30,7 @@ class Asynch
     @run = false
   end
 
-  def queue_method(method, object = nil, *args)
+  def queue_method(method, object = nil, args = [])
     method_def = {}
     method_def[:object] = object
     method_def[:method] = method
@@ -38,9 +38,22 @@ class Asynch
     @queue << method_def
   end
 
-  def set_timeout(wait, callback, object = nil, args = nil)
+  def set_timeout(wait, callback, object = nil, args = [])
     @threads << Thread.new do
       sleep(wait)
+      self.queue_method(callback, object, args)
+    end
+  end
+
+  def question(prompt, callback, object = nil, args = [])
+    @threads << Thread.new do
+      puts "callback: #{callback}"
+      puts "object = #{object}"
+      puts "args = #{args}"
+      puts prompt
+      answer = gets.chomp
+      args.unshift(answer)
+      puts args
       self.queue_method(callback, object, args)
     end
   end
@@ -52,7 +65,7 @@ class Asynch
   def close_loop
     puts "will finish whats left to do, then end"
     while @run
-      end_run if threads.select { |thread| thread.alive? }.length == 1
+      end_run if threads.select { |thread| thread.alive? }.length == 2
     end
     @queue.each do |method|
       to_run_object= method[:object] || Object
@@ -60,8 +73,10 @@ class Asynch
     end
   end
 
-  def method_missing(method)
-    "Cannot run #{method}"
+  def method_missing(method, *args)
+    # This is bad; but it does keep me from screwing up my console and
+    # getting locked out of it.
+    "Cannot run #{method} with args #{args}"
   end
 
   def console
@@ -85,13 +100,12 @@ end
 
 a = Asynch.new
 p Time.now
-a.queue_method(:sleep, nil, 1)
-a.queue_method(:my_puts,nil, "msg 1: run a method after a 1sec wait")
-a.set_timeout(5, :my_puts, nil, "msg 3: run 5 secs after msg 2")
-a.queue_method(:puts,nil,"msg 2: run immediately after msg 1")
-a.queue_method(:queue_method, a, :my_puts, nil, "recursive call" )
-# Right now, close_loop kills the run loop before checking that any sleep loops
-# are dead; implementing user_input loops will be a problem.
+# a.queue_method(:sleep, nil, 1)
+# a.queue_method(:my_puts,nil, "msg 1: run a method after a 1sec wait")
+# a.set_timeout(5, :my_puts, nil, "msg 3: run 5 secs after msg 2")
+# a.queue_method(:puts,nil,"msg 2: run immediately after msg 1")
+a.queue_method(:queue_method, a, [:my_puts, nil, "recursive call"] )
+a.question("Guess a number", :my_puts)
 a.queue_method(:close_loop, a)
 puts "this should print first"
 ThreadsWait.all_waits(*a.threads)
