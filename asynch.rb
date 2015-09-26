@@ -105,15 +105,16 @@ end
 
 a = Asynch.new
 p Time.now
-# a.queue_method(method: :sleep,args: 1)
+a.queue_method(method: :sleep,args: 1)
 a.queue_method(method: :my_puts, args: "msg 1: run a method after a 1sec wait")
 # a.set_timeout(5,method: :my_puts,args: "msg 3: run 5 secs after msg 2")
 # a.queue_method(method: :puts, args: "msg 2: run immediately after msg 1")
 # a.queue_method(method: :queue_method, object: a, args: {method: :my_puts, args: "recursive call"} )
 # a.question("Guess a number", method: :my_puts)
-a.interval(1, 5, method: :my_puts,args: "test")
-# a.queue_method(method: :close_loop,object: a)
-a.set_timeout(2, method: :quit, object: a)
+a.interval(5, -1 , method: :my_puts,args: "test")
+a.queue_method(method: :close_loop,object: a)
+# a.set_timeout(2, method: :quit, object: a)
 puts "this should print first"
+# a.quit
 ThreadsWait.all_waits(*a.threads)
 p Time.now
