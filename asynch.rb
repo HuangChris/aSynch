@@ -1,4 +1,5 @@
 require 'thwait'
+require 'byebug'
 
 class Asynch
   attr_reader :threads, :queue, :run
@@ -50,11 +51,17 @@ class Asynch
 
   def close_loop
     puts "will finish whats left to do, then end"
-    end_run
+    while @run
+      end_run if threads.select { |thread| thread.alive? }.length == 1
+    end
     @queue.each do |method|
       to_run_object= method[:object] || Object
       to_run_object.send(method[:method], method[:args])
     end
+  end
+
+  def method_missing(method)
+    "Cannot run #{method}"
   end
 
   def console
